@@ -1,17 +1,14 @@
-Nestable
+Nestable (with autoscroll)
 ========
 
-## PLEASE NOTE
+### Drag & drop hierarchical list with mouse and touch compatibility (jQuery)
 
-**I cannot provide any support or guidance beyond this README. If this code helps you that's great but I have no plans to develop Nestable beyond this demo (it's not a final product and has limited functionality). I cannot reply to any requests for help.**
+[**Autoscroll Nestable Demo**](http://th3uiguy.github.io/Nestable/)
 
-* * *
+Drag &amp; drop hierarchical list with mouse and touch compatibility (jQuery plugin). 
 
-### Drag & drop hierarchical list with mouse and touch compatibility (jQuery / Zepto plugin)
+This version of Nestable also has autoscroll built in to trigger scrolling when an element is dragged to the edge of a scroll parent.
 
-[**Try Nestable Demo**](http://dbushell.github.com/Nestable/)
-
-Nestable is an experimental example and not under active development. If it suits your requirements feel free to expand upon it!
 
 ## Usage
 
@@ -67,6 +64,7 @@ You can change the follow options:
 
 * `maxDepth` number of levels an item can be nested (default `5`)
 * `group` group ID to allow dragging between lists (default `0`)
+* `autoscroll` A boolean to turn on scrolling for the nestable (default `false`)
 
 These advanced config options are also available:
 
@@ -82,6 +80,10 @@ These advanced config options are also available:
 * `emptyClass` The class used for empty list placeholder elements (default `'dd-empty'`)
 * `expandBtnHTML` The HTML text used to generate a list item expand button (default `'<button data-action="expand">Expand></button>'`)
 * `collapseBtnHTML` The HTML text used to generate a list item collapse button (default `'<button data-action="collapse">Collapse</button>'`)
+* `axis` For autoscroll, lock scrolling to specific axis set to `'x'` or `'y'` (default `false`)
+* `scrollSensitivity` For autoscroll, distance from top and bottom of parent to trigger scroll (default `70`)
+* `scrollSpeed` For autoscroll, number of pixels to scroll each time (default `3`)
+* `scrollDelay` For autoscroll, millisecond delay between scrolls (default `15`)
 
 **Inspect the [Nestable Demo](http://dbushell.github.com/Nestable/) for guidance.**
 

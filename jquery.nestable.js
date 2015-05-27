@@ -497,12 +497,13 @@
     };
 
     /**
-     * Autoscroll support
+     * Autoscroll support - Code adapted from jquery-ui draggable https://github.com/jquery/jquery-ui/
      */
     var uaMatch = /msie ([\w.]+)/.exec( navigator.userAgent.toLowerCase() ) || [];
     var isIe = uaMatch.length ? true : false;
     var dragTimerX, dragTimerY;
 
+    // Nestable options added to nestable options
     defaults.autoscroll = false; // Lock to specific axis
     defaults.axis = false; // Lock to specific axis
     defaults.scrollSensitivity = 70; // Distance from top and bottom of parent to trigger scroll

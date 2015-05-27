@@ -51,7 +51,7 @@ p { line-height: 1.5em; }
 }
 .dd-handle:hover { color: #2ea8e5; background: #fff; }
 
-.dd-item > button { display: block; position: relative; cursor: pointer; float: left; width: 25px; height: 20px; margin: 5px 0; padding: 0; text-indent: 100%; white-space: nowrap; overflow: hidden; border: 0; background: transparent; font-size: 12px; line-height: 1; text-align: center; font-weight: bold; }
+.dd-item > button { display: block; position: relative; cursor: pointer; float: left; width: 25px; height: 20px; margin: 5px 0; padding: 0; text-indent: 30px; white-space: nowrap; overflow: hidden; border: 0; background: transparent; font-size: 12px; line-height: 1; text-align: center; font-weight: bold; }
 .dd-item > button:before { content: '+'; display: block; position: absolute; width: 100%; text-align: center; text-indent: 0; }
 .dd-item > button[data-action="collapse"]:before { content: '-'; }
 
@@ -125,7 +125,7 @@ p { line-height: 1.5em; }
 
 .dd3-item > button { margin-left: 30px; }
 
-.dd3-handle { position: absolute; margin: 0; left: 0; top: 0; cursor: pointer; width: 30px; text-indent: 100%; white-space: nowrap; overflow: hidden;
+.dd3-handle { position: absolute; margin: 0; left: 0; top: 0; cursor: pointer; width: 30px; text-indent: 30px; white-space: nowrap; overflow: hidden;
     border: 1px solid #aaa;
     background: #ddd;
     background: -webkit-linear-gradient(top, #ddd 0%, #bbb 100%);
@@ -149,18 +149,15 @@ p { line-height: 1.5em; }
 
     <h1>Nestable</h1>
 
-    <p>Drag &amp; drop hierarchical list with mouse and touch compatibility (jQuery plugin)</p>
+    <p>Drag &amp; drop hierarchical list with mouse and touch compatibility (jQuery plugin). This version of Nestable also has autoscroll built in to trigger scrolling when an element is dragged to the edge of a scroll parent.</p>
 
-    <p><strong><a href="https://github.com/dbushell/Nestable">Download on GitHub</a></strong></p>
+    <p><strong><a href="https://github.com/th3uiguy/Nestable/">Download on GitHub</a></strong></p>
 
     <div class="cf">
     <a href="http://twitter.com/share" class="socialite twitter-share" data-via="dbushell" data-text="jQuery Nestable plugin" data-url="http://dbushell.github.com/Nestable/" data-size="large" rel="nofollow" target="_blank">
         <span class="vhidden">Share on Twitter</span>
     </a>
     </div>
-
-
-<p><strong>PLEASE NOTE: I cannot provide any support or guidance beyond this README. If this code helps you that's great but I have no plans to develop Nestable beyond this demo (it's not a final product and has limited functionality). I cannot reply to any requests for help.</strong></p>
 
     <menu id="nestable-menu">
         <button type="button" data-action="expand-all">Expand All</button>
@@ -263,7 +260,7 @@ p { line-height: 1.5em; }
 
     </div>
 
-    <p class="small">Copyright &copy; <a href="http://dbushell.com/">David Bushell</a> | Made for <a href="http://www.browserlondon.com/">Browser</a></p>
+    <p class="small">Copyright &copy; <a href="http://dbushell.com/">David Bushell</a></p>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <script src="jquery.nestable.js"></script>
