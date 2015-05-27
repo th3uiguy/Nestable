@@ -4,7 +4,7 @@
  */
 ;(function($, window, document, undefined)
 {
-    var hasTouch = 'ontouchstart' in document;
+    var hasTouch = 'ontouchstart' in window;
 
     /**
      * Detect CSS pointer-events property
@@ -25,6 +25,11 @@
         docEl.removeChild(el);
         return !!supports;
     })();
+
+    var eStart  = hasTouch ? 'touchstart'  : 'mousedown',
+        eMove   = hasTouch ? 'touchmove'   : 'mousemove',
+        eEnd    = hasTouch ? 'touchend'    : 'mouseup';
+        eCancel = hasTouch ? 'touchcancel' : 'mouseup';
 
     var defaults = {
             listNodeName    : 'ol',
@@ -47,7 +52,7 @@
 
     function Plugin(element, options)
     {
-        this.w  = $(document);
+        this.w  = $(window);
         this.el = $(element);
         this.options = $.extend({}, defaults, options);
         this.init();
@@ -70,7 +75,7 @@
             });
 
             list.el.on('click', 'button', function(e) {
-                if (list.dragEl) {
+                if (list.dragEl || (!hasTouch && e.button !== 0)) {
                     return;
                 }
                 var target = $(e.currentTarget),
@@ -93,24 +98,18 @@
                     }
                     handle = handle.closest('.' + list.options.handleClass);
                 }
-                if (!handle.length || list.dragEl) {
+                if (!handle.length || list.dragEl || (!hasTouch && e.button !== 0) || (hasTouch && e.touches.length !== 1)) {
                     return;
                 }
-
-                list.isTouch = /^touch/.test(e.type);
-                if (list.isTouch && e.touches.length !== 1) {
-                    return;
-                }
-
                 e.preventDefault();
-                list.dragStart(e.touches ? e.touches[0] : e);
+                list.dragStart(hasTouch ? e.touches[0] : e);
             };
 
             var onMoveEvent = function(e)
             {
                 if (list.dragEl) {
                     e.preventDefault();
-                    list.dragMove(e.touches ? e.touches[0] : e);
+                    list.dragMove(hasTouch ? e.touches[0] : e);
                 }
             };
 
@@ -118,20 +117,23 @@
             {
                 if (list.dragEl) {
                     e.preventDefault();
-                    list.dragStop(e.touches ? e.touches[0] : e);
+                    setTimeout(function(){
+                        list.dragStop(hasTouch ? e.touches[0] : e);
+                    },100);
+                    
                 }
             };
 
             if (hasTouch) {
-                list.el[0].addEventListener('touchstart', onStartEvent, false);
-                window.addEventListener('touchmove', onMoveEvent, false);
-                window.addEventListener('touchend', onEndEvent, false);
-                window.addEventListener('touchcancel', onEndEvent, false);
+                list.el[0].addEventListener(eStart, onStartEvent, false);
+                window.addEventListener(eMove, onMoveEvent, false);
+                window.addEventListener(eEnd, onEndEvent, false);
+                window.addEventListener(eCancel, onEndEvent, false);
+            } else {
+                list.el.on(eStart, onStartEvent);
+                list.w.on(eMove, onMoveEvent);
+                list.w.on(eEnd, onEndEvent);
             }
-
-            list.el.on('mousedown', onStartEvent);
-            list.w.on('mousemove', onMoveEvent);
-            list.w.on('mouseup', onEndEvent);
 
         },
 
@@ -186,7 +188,6 @@
                 distAxX   : 0,
                 distAxY   : 0
             };
-            this.isTouch    = false;
             this.moving     = false;
             this.dragEl     = null;
             this.dragRootEl = null;
@@ -249,8 +250,10 @@
         dragStart: function(e)
         {
             var mouse    = this.mouse,
+                opt      = this.options,
                 target   = $(e.target),
-                dragItem = target.closest(this.options.itemNodeName);
+                dragItem = target.closest(this.options.itemNodeName)
+                list = this.el;
 
             this.placeEl.css('height', dragItem.height());
 
@@ -262,8 +265,10 @@
             this.dragRootEl = this.el;
 
             this.dragEl = $(document.createElement(this.options.listNodeName)).addClass(this.options.listClass + ' ' + this.options.dragClass);
-            this.dragEl.css('width', dragItem.width());
-
+            this.dragEl.css('width', dragItem.outerWidth());
+            
+            // fix for zepto.js
+            //dragItem.after(this.placeEl).detach().appendTo(this.dragEl);
             dragItem.after(this.placeEl);
             dragItem[0].parentNode.removeChild(dragItem[0]);
             dragItem.appendTo(this.dragEl);
@@ -282,18 +287,26 @@
                     this.dragDepth = depth;
                 }
             }
+            this.el.trigger('dd.dragstart');
+
+            if(opt.autoscroll) {
+                this.scrollParent = this.getScrollParent($(list));
+                this.overflowOffset = this.scrollParent.offset();
+            }
         },
 
         dragStop: function(e)
         {
+            // fix for zepto.js
+            //this.placeEl.replaceWith(this.dragEl.children(this.options.itemNodeName + ':first').detach());
             var el = this.dragEl.children(this.options.itemNodeName).first();
             el[0].parentNode.removeChild(el[0]);
             this.placeEl.replaceWith(el);
 
             this.dragEl.remove();
-            this.el.trigger('change');
+            this.el.trigger('change').trigger('dd.dragstop');
             if (this.hasNewRoot) {
-                this.dragRootEl.trigger('change');
+                this.dragRootEl.trigger('change').trigger('dd.dragstop');
             }
             this.reset();
         },
@@ -308,6 +321,10 @@
                 'left' : e.pageX - mouse.offsetX,
                 'top'  : e.pageY - mouse.offsetY
             });
+            
+            if(opt.autoscroll) {
+                this.dragAutoScroll(e, this.scrollParent, this.overflowOffset);
+            }
 
             // mouse position last events
             mouse.lastX = mouse.nowX;
@@ -394,13 +411,13 @@
             var isEmpty = false;
 
             // find list item under cursor
-            if (!hasPointerEvents) {
+            //if (!hasPointerEvents) {
                 this.dragEl[0].style.visibility = 'hidden';
-            }
+            //}
             this.pointEl = $(document.elementFromPoint(e.pageX - document.body.scrollLeft, e.pageY - (window.pageYOffset || document.documentElement.scrollTop)));
-            if (!hasPointerEvents) {
+            //if (!hasPointerEvents) {
                 this.dragEl[0].style.visibility = 'visible';
-            }
+            //}
             if (this.pointEl.hasClass(opt.handleClass)) {
                 this.pointEl = this.pointEl.parent(opt.itemNodeName);
             }
@@ -455,7 +472,6 @@
                 }
             }
         }
-
     };
 
     $.fn.nestable = function(params)
@@ -480,4 +496,93 @@
         return retval || lists;
     };
 
+    /**
+     * Autoscroll support
+     */
+    var uaMatch = /msie ([\w.]+)/.exec( navigator.userAgent.toLowerCase() ) || [];
+    var isIe = uaMatch.length ? true : false;
+    var dragTimerX, dragTimerY;
+
+    defaults.autoscroll = false; // Lock to specific axis
+    defaults.axis = false; // Lock to specific axis
+    defaults.scrollSensitivity = 70; // Distance from top and bottom of parent to trigger scroll
+    defaults.scrollSpeed = 3; // Number of pixels to scroll each time
+    defaults.scrollDelay = 15; // Millisecond delay between scrolls
+
+    Plugin.prototype.dragAutoScroll = function(event, scrollParent, overflowOffset){
+        var self = this, o = this.options;
+
+        if(scrollParent[0] != document && scrollParent[0].tagName != 'HTML') {
+
+            if(!o.axis || o.axis != 'x') {
+                clearTimeout(dragTimerY);
+                if((overflowOffset.top + scrollParent[0].offsetHeight) - event.pageY < o.scrollSensitivity){
+                    scrollParent[0].scrollTop = scrollParent[0].scrollTop + o.scrollSpeed;
+                    dragTimerY = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+                else if(event.pageY - overflowOffset.top < o.scrollSensitivity){
+                    scrollParent[0].scrollTop = scrollParent[0].scrollTop - o.scrollSpeed;
+                    dragTimerY = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+            }
+
+            if(!o.axis || o.axis != 'y') {
+                clearTimeout(dragTimerX);
+                if((overflowOffset.left + scrollParent[0].offsetWidth) - event.pageX < o.scrollSensitivity){
+                    scrollParent[0].scrollLeft = scrollParent[0].scrollLeft + o.scrollSpeed;
+                    dragTimerX = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+                else if(event.pageX - overflowOffset.left < o.scrollSensitivity){
+                    scrollParent[0].scrollLeft = scrollParent[0].scrollLeft - o.scrollSpeed;
+                    dragTimerX = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+            }
+
+        } else {
+
+            if(!o.axis || o.axis != 'x') {
+                clearTimeout(dragTimerY);
+                if(event.pageY - $(document).scrollTop() < o.scrollSensitivity){
+                    $(document).scrollTop($(document).scrollTop() - o.scrollSpeed);
+                    dragTimerY = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+                else if($(window).height() - (event.pageY - $(document).scrollTop()) < o.scrollSensitivity){
+                    $(document).scrollTop($(document).scrollTop() + o.scrollSpeed);
+                    dragTimerY = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+            }
+
+            if(!o.axis || o.axis != 'y') {
+                clearTimeout(dragTimerX);
+                if(event.pageX - $(document).scrollLeft() < o.scrollSensitivity){
+                    $(document).scrollLeft($(document).scrollLeft() - o.scrollSpeed);
+                    dragTimerX = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+                else if($(window).width() - (event.pageX - $(document).scrollLeft()) < o.scrollSensitivity){
+                    $(document).scrollLeft($(document).scrollLeft() + o.scrollSpeed);
+                    dragTimerX = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+            }
+
+        }
+    };
+
+    Plugin.prototype.getScrollParent = function (element){
+        var scrollParent;
+
+        if ((isIe && (/(static|relative)/).test(element.css('position'))) || (/absolute/).test(element.css('position'))) {
+            scrollParent = element.parents().filter(function() {
+                return (/(relative|absolute|fixed)/).test($.css(this,'position')) && (/(auto|scroll)/).test($.css(this,'overflow')+$.css(this,'overflow-y')+$.css(this,'overflow-x'));
+            }).eq(0);
+        } else {
+            scrollParent = element.parents().filter(function() {
+                return (/(auto|scroll)/).test($.css(this,'overflow')+$.css(this,'overflow-y')+$.css(this,'overflow-x'));
+            }).eq(0);
+        }
+
+        return (/fixed/).test(element.css('position')) || !scrollParent.length ? $(document) : scrollParent;
+    }
+
+
 })(window.jQuery || window.Zepto, window, document);
+
