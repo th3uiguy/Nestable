@@ -250,6 +250,7 @@
         dragStart: function(e)
         {
             var mouse    = this.mouse,
+                opt      = this.options,
                 target   = $(e.target),
                 dragItem = target.closest(this.options.itemNodeName)
                 list = this.el;
@@ -288,9 +289,10 @@
             }
             this.el.trigger('dd.dragstart');
 
-            this.scrollParent = scrollParent($(list));
-            this.overflowOffset = this.scrollParent.offset();
-
+            if(opt.autoscroll) {
+                this.scrollParent = this.getScrollParent($(list));
+                this.overflowOffset = this.scrollParent.offset();
+            }
         },
 
         dragStop: function(e)
@@ -320,7 +322,9 @@
                 'top'  : e.pageY - mouse.offsetY
             });
             
-            drag(e, this.scrollParent, this.overflowOffset);
+            if(opt.autoscroll) {
+                this.dragAutoScroll(e, this.scrollParent, this.overflowOffset);
+            }
 
             // mouse position last events
             mouse.lastX = mouse.nowX;
@@ -492,55 +496,93 @@
         return retval || lists;
     };
 
+    /**
+     * Autoscroll support
+     */
+    var uaMatch = /msie ([\w.]+)/.exec( navigator.userAgent.toLowerCase() ) || [];
+    var isIe = uaMatch.length ? true : false;
+    var dragTimerX, dragTimerY;
+
+    defaults.autoscroll = false; // Lock to specific axis
+    defaults.axis = false; // Lock to specific axis
+    defaults.scrollSensitivity = 70; // Distance from top and bottom of parent to trigger scroll
+    defaults.scrollSpeed = 3; // Number of pixels to scroll each time
+    defaults.scrollDelay = 15; // Millisecond delay between scrolls
+
+    Plugin.prototype.dragAutoScroll = function(event, scrollParent, overflowOffset){
+        var self = this, o = this.options;
+
+        if(scrollParent[0] != document && scrollParent[0].tagName != 'HTML') {
+
+            if(!o.axis || o.axis != 'x') {
+                clearTimeout(dragTimerY);
+                if((overflowOffset.top + scrollParent[0].offsetHeight) - event.pageY < o.scrollSensitivity){
+                    scrollParent[0].scrollTop = scrollParent[0].scrollTop + o.scrollSpeed;
+                    dragTimerY = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+                else if(event.pageY - overflowOffset.top < o.scrollSensitivity){
+                    scrollParent[0].scrollTop = scrollParent[0].scrollTop - o.scrollSpeed;
+                    dragTimerY = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+            }
+
+            if(!o.axis || o.axis != 'y') {
+                clearTimeout(dragTimerX);
+                if((overflowOffset.left + scrollParent[0].offsetWidth) - event.pageX < o.scrollSensitivity){
+                    scrollParent[0].scrollLeft = scrollParent[0].scrollLeft + o.scrollSpeed;
+                    dragTimerX = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+                else if(event.pageX - overflowOffset.left < o.scrollSensitivity){
+                    scrollParent[0].scrollLeft = scrollParent[0].scrollLeft - o.scrollSpeed;
+                    dragTimerX = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+            }
+
+        } else {
+
+            if(!o.axis || o.axis != 'x') {
+                clearTimeout(dragTimerY);
+                if(event.pageY - $(document).scrollTop() < o.scrollSensitivity){
+                    $(document).scrollTop($(document).scrollTop() - o.scrollSpeed);
+                    dragTimerY = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+                else if($(window).height() - (event.pageY - $(document).scrollTop()) < o.scrollSensitivity){
+                    $(document).scrollTop($(document).scrollTop() + o.scrollSpeed);
+                    dragTimerY = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+            }
+
+            if(!o.axis || o.axis != 'y') {
+                clearTimeout(dragTimerX);
+                if(event.pageX - $(document).scrollLeft() < o.scrollSensitivity){
+                    $(document).scrollLeft($(document).scrollLeft() - o.scrollSpeed);
+                    dragTimerX = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+                else if($(window).width() - (event.pageX - $(document).scrollLeft()) < o.scrollSensitivity){
+                    $(document).scrollLeft($(document).scrollLeft() + o.scrollSpeed);
+                    dragTimerX = setTimeout(function(){ self.dragAutoScroll(event, scrollParent, overflowOffset)}, o.scrollDelay);
+                }
+            }
+
+        }
+    };
+
+    Plugin.prototype.getScrollParent = function (element){
+        var scrollParent;
+
+        if ((isIe && (/(static|relative)/).test(element.css('position'))) || (/absolute/).test(element.css('position'))) {
+            scrollParent = element.parents().filter(function() {
+                return (/(relative|absolute|fixed)/).test($.css(this,'position')) && (/(auto|scroll)/).test($.css(this,'overflow')+$.css(this,'overflow-y')+$.css(this,'overflow-x'));
+            }).eq(0);
+        } else {
+            scrollParent = element.parents().filter(function() {
+                return (/(auto|scroll)/).test($.css(this,'overflow')+$.css(this,'overflow-y')+$.css(this,'overflow-x'));
+            }).eq(0);
+        }
+
+        return (/fixed/).test(element.css('position')) || !scrollParent.length ? $(document) : scrollParent;
+    }
+
+
 })(window.jQuery || window.Zepto, window, document);
 
-var uaMatch = /msie ([\w.]+)/.exec( navigator.userAgent.toLowerCase() ) || [];
-var isIe = uaMatch.length ? true : false;
-
-var dragTimerX, dragTimerY;
-function drag(event, scrollParent, overflowOffset){
-    var o = {axis: false, scrollSensitivity: 70, scrollSpeed: 5, scrollDelay: 15}, scrolled = false;
-
-    if(scrollParent[0] != document && scrollParent[0].tagName != 'HTML') {
-
-        if(!o.axis || o.axis != 'x') {
-            clearTimeout(dragTimerY);
-            if((overflowOffset.top + scrollParent[0].offsetHeight) - event.pageY < o.scrollSensitivity){
-                scrollParent[0].scrollTop = scrolled = scrollParent[0].scrollTop + o.scrollSpeed;
-                dragTimerY = setTimeout(function(){ drag(event, scrollParent, overflowOffset)}, o.scrollDelay);
-            }
-            else if(event.pageY - overflowOffset.top < o.scrollSensitivity){
-                scrollParent[0].scrollTop = scrolled = scrollParent[0].scrollTop - o.scrollSpeed;
-                dragTimerY = setTimeout(function(){ drag(event, scrollParent, overflowOffset)}, o.scrollDelay);
-            }
-        }
-
-        if(!o.axis || o.axis != 'y') {
-            clearTimeout(dragTimerX);
-            if((overflowOffset.left + scrollParent[0].offsetWidth) - event.pageX < o.scrollSensitivity){
-                scrollParent[0].scrollLeft = scrolled = scrollParent[0].scrollLeft + o.scrollSpeed;
-                dragTimerX = setTimeout(function(){ drag(event, scrollParent, overflowOffset)}, o.scrollDelay);
-            }
-            else if(event.pageX - overflowOffset.left < o.scrollSensitivity){
-                scrollParent[0].scrollLeft = scrolled = scrollParent[0].scrollLeft - o.scrollSpeed;
-                dragTimerX = setTimeout(function(){ drag(event, scrollParent, overflowOffset)}, o.scrollDelay);
-            }
-        }
-
-    }
-}
-
-function scrollParent(element){
-    var scrollParent;
-    if ((isIe && (/(static|relative)/).test(element.css('position'))) || (/absolute/).test(element.css('position'))) {
-        scrollParent = element.parents().filter(function() {
-            return (/(relative|absolute|fixed)/).test($.css(this,'position')) && (/(auto|scroll)/).test($.css(this,'overflow')+$.css(this,'overflow-y')+$.css(this,'overflow-x'));
-        }).eq(0);
-    } else {
-        scrollParent = element.parents().filter(function() {
-            return (/(auto|scroll)/).test($.css(this,'overflow')+$.css(this,'overflow-y')+$.css(this,'overflow-x'));
-        }).eq(0);
-    }
-
-    return (/fixed/).test(element.css('position')) || !scrollParent.length ? $(document) : scrollParent;
-}

@@ -157,6 +157,7 @@ p { line-height: 1.5em; }
     <div class="cf nestable-lists">
 
         <div class="dd" id="nestable">
+            <p>With autoscroll: true</p>
             <ol class="dd-list">
                 <li class="dd-item" data-id="1">
                     <div class="dd-handle">Item 1</div>
@@ -188,6 +189,7 @@ p { line-height: 1.5em; }
         </div>
 
         <div class="dd" id="nestable2">
+            <p>With autoscroll: false (default)</p>
             <ol class="dd-list">
                 <li class="dd-item" data-id="13">
                     <div class="dd-handle">Item 13</div>
@@ -270,7 +272,8 @@ $(document).ready(function()
 
     // activate Nestable for list 1
     $('#nestable').nestable({
-        group: 1
+        group: 1,
+        autoscroll: true
     })
     .on('change', updateOutput);
 
