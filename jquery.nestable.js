@@ -422,7 +422,7 @@
             //if (!hasPointerEvents) {
                 this.dragEl[0].style.visibility = 'visible';
             //}
-            if (this.pointEl.hasClass(opt.handleClass)) {
+            if (this.pointEl.parent(opt.itemNodeName).hasClass(opt.itemClass)) {
                 this.pointEl = this.pointEl.parent(opt.itemNodeName);
             }
             if (this.pointEl.hasClass(opt.emptyClass)) {
@@ -453,21 +453,23 @@
                     parent = this.placeEl.parent();
                 // if empty create new list to replace empty placeholder
                 if (isEmpty) {
-                    list = $(document.createElement(opt.listNodeName)).addClass(opt.listClass);
+                    list = $('<' + opt.listNodeName + '/>').addClass(opt.listClass);
                     list.append(this.placeEl);
                     this.pointEl.replaceWith(list);
                 }
-                else if (before) {
-                    this.pointEl.before(this.placeEl);
-                }
-                else {
-                    this.pointEl.after(this.placeEl);
-                }
+                else{
+                    if (before) {
+                        this.pointEl.before(this.placeEl);
+                    }
+                    else {
+                        this.pointEl.after(this.placeEl);
+                    }
+                    if (!this.dragRootEl.find(opt.itemNodeName + ", ." + opt.emptyClass).length) {
+                        this.dragRootEl.append('<div class="' + opt.emptyClass + '"/>');
+                    }
+                } 
                 if (!parent.children().length) {
                     this.unsetParent(parent.parent());
-                }
-                if (!this.dragRootEl.find(opt.itemNodeName).length) {
-                    this.dragRootEl.append('<div class="' + opt.emptyClass + '"/>');
                 }
                 // parent root list has changed
                 if (isNewRoot) {
